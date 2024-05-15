@@ -13,24 +13,24 @@ adis.ne1000_log_init(stream_handler_level=logging.DEBUG)
 dev = adis.Pt104()
 dev.open()
 
-CH1 = adis.Pt104TempCh(dev, 1)
+#CH1 = adis.Pt104TempCh(dev, 1)
 CH2 = adis.Pt104TempCh(dev, 2)
 
 while True:
 
     try:
 
-        T1 = CH1.read()
+        #T1 = CH1.read()
 
         T2 = CH2.read()
 
         if T2 > 30:
             print("too hot")
 
-            root = tk.Tk()
-            root.withdraw()
+            #root = tk.Tk()
+            #root.withdraw()
 
-            messagebox.showerror("Error", "The Temperature at the knife is getting too hot")
+            #messagebox.showerror("Error", "The Temperature at the knife is getting too hot")
 
            # root.mainloop()
 
