@@ -52,6 +52,8 @@ def move_joystick(pidevice, joystick,
 
             break
 
+    return xpos, ypos
+
 
 if __name__ == "__main__":
     pidevice = GCSDevice()
