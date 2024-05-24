@@ -24,7 +24,7 @@ import pygame
 class SemiManualCollection:
 
     def __init__(self):
-        
+        self.AXES = ['1', '2', '3', '4']
 
         pygame.init()
         pygame.joystick.init()
@@ -165,16 +165,28 @@ class SemiManualCollection:
                     break
                 
                 # Adjust pickup point
-                self.pickup_pos_xy[0], self.pickup_pos_xy[1] = move_joystick(pidevice, self.joystick)
+                self.pickup_pos_xy[0], self.pickup_pos_xy[1], end_collection = move_joystick(pidevice, self.joystick)
+                if end_collection:
+                    pygame.joystick.quit()
+                    pidevice.CloseConnection()
+                    self.mycon.close()
+                    print("Connection closed.")
+                    break
                 # Pick section up (lowing the tip)
                 pidevice.MOV(3, self.pickup_pos_z)
                 sleep(1)
                 # Move section to wafer boat
                 pidevice.MOV(1, self.dropoff_pos_xy[0])
                 pidevice.MOV(2, self.dropoff_pos_xy[1])
-                sleep(1)
+                sleep(10)
                 # Move section to wafer with joystick
-                move_joystick(pidevice, self.joystick)
+                _, _, end_collection = move_joystick(pidevice, self.joystick)
+                if end_collection:
+                    pygame.joystick.quit()
+                    pidevice.CloseConnection()
+                    self.mycon.close()
+                    print("Connection closed.")
+                    break
                 # Lift tip
                 pidevice.MOV(3, self.dropoff_pos_z)
                 sleep(1)
@@ -182,3 +194,8 @@ class SemiManualCollection:
                 pidevice.MOV(1, self.pickup_pos_xy[0])
                 pidevice.MOV(2, self.pickup_pos_xy[1])
 
+
+
+
+if __name__ == '__main__':
+    collect = SemiManualCollection()

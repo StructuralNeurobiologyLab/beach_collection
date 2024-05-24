@@ -15,6 +15,8 @@ def move_joystick(pidevice, joystick,
     xpos = pidevice.qPOS()["1"]
     ypos = pidevice.qPOS()["2"]
 
+    end_collection = False
+
     while True:
         pygame.event.get()
 
@@ -46,13 +48,22 @@ def move_joystick(pidevice, joystick,
             xpos = pidevice.qPOS()["1"]
             ypos = pidevice.qPOS()["2"]
 
+        if joystick.get_button(7) == True:
+            print('retract wafer')
+            wpos = pidevice.qPOS()["4"]
+            pidevice.MOV(4, wpos - 15)
+
         if joystick.get_button(0) == True:
             print("done with joystick")
             sleep(2)
-
             break
 
-    return xpos, ypos
+        if joystick.get_button(13) == True:
+            print('ending collection')
+            end_collection = True
+            break
+
+    return xpos, ypos, end_collection
 
 
 if __name__ == "__main__":
