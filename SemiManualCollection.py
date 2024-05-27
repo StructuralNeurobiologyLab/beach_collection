@@ -19,12 +19,27 @@ from pipython.pitools import waitonwalk
 from time import sleep
 import pygame
 
+from cap import ncdt6500_get_data, ncdt6500_decode
+import ne1000
+
+
 
 
 class SemiManualCollection:
 
     def __init__(self):
         self.AXES = ['1', '2', '3', '4']
+
+        self.internal_water_level_control = True
+        if self.internal_water_level_control:
+            self.TCP_ADDRESS = '169.254.168.150'
+            self.PORT = 'COM5'
+            self.ADDRESS = 1
+            self.DIA = 38
+
+            self.dev = ne1000.Ne1000Serial(self.PORT)
+            self.volume = ne1000.Ne1000Volume(2, 'ml')
+            self.rate = ne1000.Ne1000Rate(10, 'MM')
 
         pygame.init()
         pygame.joystick.init()
@@ -164,6 +179,9 @@ class SemiManualCollection:
                     print("invalid response")
                     break
                 
+                if self.internal_water_level_control:
+                    self.water_level_control()
+
                 # Adjust pickup point
                 self.pickup_pos_xy[0], self.pickup_pos_xy[1], end_collection = move_joystick(pidevice, self.joystick)
                 if end_collection:
@@ -193,6 +211,39 @@ class SemiManualCollection:
                 # Move arm back to pickup point
                 pidevice.MOV(1, self.pickup_pos_xy[0])
                 pidevice.MOV(2, self.pickup_pos_xy[1])
+
+    def calibrate_cap_sensor(self):
+        cap_reading = input('Please adjust the water level and the Z position of the cap sensor.\nThen enter the output of the cap sensor (in percent) to calibrate the reading:\n')
+        x = int(cap_reading)
+        y = x * 0.1
+        self.ue = y + 0.5
+        self.ut = y - 0.5
+        print(self.ue)
+        print(self.ut)
+
+    def water_level_control(self):
+        for channel, raw_data in enumerate(ncdt6500_get_data()):
+            print(f"channel #{channel}: {ncdt6500_decode(raw_data):.4g} V")
+            waterlevel = ncdt6500_decode(raw_data)
+        if waterlevel > self.ue:
+            pump = ne1000.Ne1000(self.dev, self.ADDRESS)
+            pump.diameter_mm(self.DIA)
+            pump.volume(self.volume)
+            pump.rate(self.rate)
+            pump.direction_infuse()
+            pump.run()
+            time.sleep(10)
+    #  if waterlevel < ut:
+    #     pump = ne1000.Ne1000(dev, ADDRESS)
+    #     pump.diameter_mm(DIA)
+        #    pump.volume(volume)
+        #    pump.rate(rate)
+        #    pump.direction_withdraw()
+        #    pump.run()
+        #   time.sleep(10)
+        elif waterlevel <= self.ue:
+            #continue
+            time.sleep(0.1)
 
 
 
