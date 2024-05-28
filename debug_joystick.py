@@ -14,6 +14,8 @@ def move_joystick(pidevice, joystick,
                   upper_ybound=150):
     xpos = pidevice.qPOS()["1"]
     ypos = pidevice.qPOS()["2"]
+    zpos = pidevice.qPOS()["3"]
+    zpos_final = 0
 
     end_collection = False
 
@@ -31,7 +33,7 @@ def move_joystick(pidevice, joystick,
         xpos = max(left_xbound, min(right_xbound, xpos + speed * delta_x))
         ypos = max(lower_ybound, min(upper_ybound, ypos + speed * delta_y))
 
-        print(f"new x,y {xpos, ypos}, delta {delta_x, delta_y}")
+        print(f"new x,y {xpos, ypos}, delta {delta_x, delta_y}, new z {zpos}")
 
         pidevice.MOV(1, xpos)
         pidevice.MOV(2, ypos)
@@ -48,22 +50,42 @@ def move_joystick(pidevice, joystick,
             xpos = pidevice.qPOS()["1"]
             ypos = pidevice.qPOS()["2"]
 
-        if joystick.get_button(7) == True:
+        elif joystick.get_button(7) == True:
             print('retract wafer')
             wpos = pidevice.qPOS()["4"]
             pidevice.MOV(4, wpos - 15)
 
-        if joystick.get_button(0) == True:
+        elif joystick.get_button(0) == True:
             print("done with joystick")
             sleep(2)
             break
 
-        if joystick.get_button(13) == True:
+        elif joystick.get_button(13) == True:
             print('ending collection')
             end_collection = True
             break
 
-    return xpos, ypos, end_collection
+        elif joystick.get_button(4) == True:
+            zpos += 0.1
+            pidevice.MOV(3, zpos)
+            zpos_final = zpos
+
+        elif joystick.get_button(5) == True:
+            zpos -= 0.1
+            pidevice.MOV(3, zpos)
+            zpos_final = zpos
+
+        elif joystick.get_button(9) == True:
+            zpos += 0.01
+            pidevice.MOV(3, zpos)
+            zpos_final = zpos
+
+        elif joystick.get_button(8) == True:
+            zpos -= 0.01
+            pidevice.MOV(3, zpos)
+            zpos_final = zpos
+
+    return xpos, ypos, zpos_final, end_collection
 
 
 if __name__ == "__main__":

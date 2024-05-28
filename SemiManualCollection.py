@@ -4,6 +4,8 @@ Created on Mon May 13 17:46:12 2024
 @author: hemesath
 """
 
+import os
+import json
 from pipython import GCSDevice
 from pipython.pitools import waitonwalk
 from leicame import LeicaMicrotomeController
@@ -25,12 +27,13 @@ import ne1000
 
 
 
+
 class SemiManualCollection:
 
     def __init__(self):
         self.AXES = ['1', '2', '3', '4']
 
-        self.internal_water_level_control = True
+        self.internal_water_level_control = False
         if self.internal_water_level_control:
             self.TCP_ADDRESS = '169.254.168.150'
             self.PORT = 'COM5'
@@ -62,12 +65,22 @@ class SemiManualCollection:
 
 
         #Set stage positions
-        self.start_pos = [112, 75, 110, 140]
-        self.stage_pos = self.start_pos
-        self.pickup_pos_xy = [112, 75]
-        self.pickup_pos_z = 122
-        self.dropoff_pos_xy = [60, 75]
-        self.dropoff_pos_z = 110
+        if os.path.isfile('stage_posS.json'):
+            with open('stage_posS.json', 'r') as f:
+                stage_posS = json.load(f)
+            self.start_pos = stage_posS['start_pos']
+            self.stage_pos = self.start_pos
+            self.pickup_pos_xy = stage_posS['pickup_pos_xy']
+            self.pickup_pos_z = stage_posS['pickup_pos_z']
+            self.dropoff_pos_xy = stage_posS['dropoff_pos_xy']
+            self.dropoff_pos_z = stage_posS['dropoff_pos_z']
+        else:
+            self.start_pos = [112, 64, 115, 140]
+            self.stage_pos = self.start_pos
+            self.pickup_pos_xy = [112, 64]
+            self.pickup_pos_z = 122
+            self.dropoff_pos_xy = [60, 66]
+            self.dropoff_pos_z = 115
 
         self.main_menu()
         
@@ -183,13 +196,16 @@ class SemiManualCollection:
                     self.water_level_control()
 
                 # Adjust pickup point
-                self.pickup_pos_xy[0], self.pickup_pos_xy[1], end_collection = move_joystick(pidevice, self.joystick)
+                self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick)
                 if end_collection:
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
+                    self.save_stage_pos()
                     self.mycon.close()
                     print("Connection closed.")
                     break
+                if temp_pos_z > 0:
+                    self.pickup_pos_z = temp_pos_z
                 # Pick section up (lowing the tip)
                 pidevice.MOV(3, self.pickup_pos_z)
                 sleep(1)
@@ -198,7 +214,7 @@ class SemiManualCollection:
                 pidevice.MOV(2, self.dropoff_pos_xy[1])
                 sleep(10)
                 # Move section to wafer with joystick
-                _, _, end_collection = move_joystick(pidevice, self.joystick)
+                _, _, _,end_collection = move_joystick(pidevice, self.joystick)
                 if end_collection:
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
@@ -245,6 +261,16 @@ class SemiManualCollection:
             #continue
             time.sleep(0.1)
 
+    def save_stage_pos(self):
+        self.start_pos[0] = self.pickup_pos_xy[0]
+        self.start_pos[1] = self.pickup_pos_xy[1]
+        stage_posF = {'start_pos': self.start_pos,
+                      'pickup_pos_xy': self.pickup_pos_xy,
+                      'pickup_pos_z': self.pickup_pos_z,
+                      'dropoff_pos_xy': self.dropoff_pos_xy,
+                      'dropoff_pos_z': self.dropoff_pos_z}
+        with open('stage_posS.json', 'w') as f:
+            json.dump(stage_posF, f)
 
 
 
