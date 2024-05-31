@@ -241,6 +241,8 @@ class SemiManualCollection:
         for channel, raw_data in enumerate(ncdt6500_get_data()):
             print(f"channel #{channel}: {ncdt6500_decode(raw_data):.4g} V")
             waterlevel = ncdt6500_decode(raw_data)
+        if waterlevel < self.ut - 0.5:
+            raise ValueError('Large change in cap sensor reading detected. Please check the cap sensor for water drops.')
         if waterlevel > self.ue:
             pump = ne1000.Ne1000(self.dev, self.ADDRESS)
             pump.diameter_mm(self.DIA)
