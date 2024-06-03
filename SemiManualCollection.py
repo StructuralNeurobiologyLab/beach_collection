@@ -34,6 +34,11 @@ class SemiManualCollection:
         self.AXES = ['1', '2', '3', '4']
 
         self.internal_water_level_control = False
+        self.manual_water_refill = False
+
+        self.auto_loop = False
+        self.interrupt = False
+
         if self.internal_water_level_control:
             self.TCP_ADDRESS = '169.254.168.150'
             self.PORT = 'COM5'
@@ -43,6 +48,12 @@ class SemiManualCollection:
             self.dev = ne1000.Ne1000Serial(self.PORT)
             self.volume = ne1000.Ne1000Volume(2, 'ml')
             self.rate = ne1000.Ne1000Rate(10, 'MM')
+
+            self.pump = ne1000.Ne1000(self.dev, self.ADDRESS)
+            self.pump.diameter_mm(self.DIA)
+            self.pump.volume(self.volume)
+            self.pump.rate(self.rate)
+            self.pump.direction_infuse()
 
         pygame.init()
         pygame.joystick.init()
@@ -198,6 +209,8 @@ class SemiManualCollection:
                 # Adjust pickup point
                 self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick)
                 if end_collection:
+                    print('remove the wafer')
+                    _, _, _, _ = move_joystick(pidevice, self.joystick)
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
                     self.save_stage_pos()
@@ -227,6 +240,7 @@ class SemiManualCollection:
                 # Move arm back to pickup point
                 pidevice.MOV(1, self.pickup_pos_xy[0])
                 pidevice.MOV(2, self.pickup_pos_xy[1])
+                sleep(10)
 
     def calibrate_cap_sensor(self):
         cap_reading = input('Please adjust the water level and the Z position of the cap sensor.\nThen enter the output of the cap sensor (in percent) to calibrate the reading:\n')
@@ -244,13 +258,8 @@ class SemiManualCollection:
         if waterlevel < self.ut - 0.5:
             raise ValueError('Large change in cap sensor reading detected. Please check the cap sensor for water drops.')
         if waterlevel > self.ue:
-            pump = ne1000.Ne1000(self.dev, self.ADDRESS)
-            pump.diameter_mm(self.DIA)
-            pump.volume(self.volume)
-            pump.rate(self.rate)
-            pump.direction_infuse()
-            pump.run()
-            time.sleep(10)
+            self.pump.run()
+            time.sleep(15)
     #  if waterlevel < ut:
     #     pump = ne1000.Ne1000(dev, ADDRESS)
     #     pump.diameter_mm(DIA)
@@ -273,6 +282,16 @@ class SemiManualCollection:
                       'dropoff_pos_z': self.dropoff_pos_z}
         with open('stage_posS.json', 'w') as f:
             json.dump(stage_posF, f)
+
+    def check_events(self):
+        events = pygame.event.get()
+        for e in events:
+            if e.type == 1539:
+                if e.dict['button'] == 0:
+                    self.interrupt = True
+                if e.dict['button'] == 15:
+                    self.pump.run()
+                    sleep(15)
 
 
 

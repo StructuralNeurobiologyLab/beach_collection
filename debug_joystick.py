@@ -53,7 +53,12 @@ def move_joystick(pidevice, joystick,
         elif joystick.get_button(7) == True:
             print('retract wafer')
             wpos = pidevice.qPOS()["4"]
-            pidevice.MOV(4, wpos - 15)
+            pidevice.MOV(4, wpos - 1)
+
+        elif joystick.get_button(6) == True:
+            print('retract wafer')
+            wpos = pidevice.qPOS()["4"]
+            pidevice.MOV(4, wpos - 10)
 
         elif joystick.get_button(0) == True:
             print("done with joystick")
