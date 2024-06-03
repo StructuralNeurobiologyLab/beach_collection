@@ -33,11 +33,11 @@ class SemiManualCollection:
     def __init__(self):
         self.AXES = ['1', '2', '3', '4']
 
-        self.internal_water_level_control = False
-        self.manual_water_refill = False
+        self.internal_water_level_control = True
+        self.manual_water_refill = True
 
-        self.auto_loop = False
-        self.interrupt = False
+        self.auto_loop = True
+        self.interrupt = True
 
         if self.internal_water_level_control:
             self.TCP_ADDRESS = '169.254.168.150'
@@ -156,6 +156,10 @@ class SemiManualCollection:
             pidevice.MOV(3, self.stage_pos[2])
             pidevice.MOV(4, self.stage_pos[3])
 
+            if self.internal_water_level_control:
+                if not self.manual_water_refill:
+                    self.calibrate_cap_sensor()
+
             while True:
                 ##### Cut the slice 
                 print("Turn motor on...")
@@ -204,10 +208,18 @@ class SemiManualCollection:
                     break
                 
                 if self.internal_water_level_control:
-                    self.water_level_control()
+                    if not self.manual_water_refill:
+                        self.water_level_control()
 
                 # Adjust pickup point
-                self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick)
+                if self.auto_loop:
+                    self.check_events()
+                    if self.interrupt:
+                        self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(
+                            pidevice, self.joystick)
+                        self.interrupt = False
+                else:
+                    self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick)
                 if end_collection:
                     print('remove the wafer')
                     _, _, _, _ = move_joystick(pidevice, self.joystick)
@@ -227,8 +239,16 @@ class SemiManualCollection:
                 pidevice.MOV(2, self.dropoff_pos_xy[1])
                 sleep(10)
                 # Move section to wafer with joystick
-                _, _, _,end_collection = move_joystick(pidevice, self.joystick)
+                if self.auto_loop:
+                    self.check_events()
+                    if self.interrupt:
+                        _, _, _, end_collection = move_joystick(pidevice, self.joystick)
+                        self.interrupt = False
+                else:
+                    _, _, _, end_collection = move_joystick(pidevice, self.joystick)
                 if end_collection:
+                    print('remove the wafer')
+                    _, _, _, _ = move_joystick(pidevice, self.joystick)
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
                     self.mycon.close()
@@ -289,9 +309,10 @@ class SemiManualCollection:
             if e.type == 1539:
                 if e.dict['button'] == 0:
                     self.interrupt = True
-                if e.dict['button'] == 15:
-                    self.pump.run()
-                    sleep(15)
+                elif e.dict['button'] == 15:
+                    if self.manual_water_refill:
+                        self.pump.run()
+                        sleep(15)
 
 
 
