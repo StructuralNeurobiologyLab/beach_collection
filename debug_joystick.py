@@ -1,9 +1,7 @@
-import time
-
 from pipython import GCSDevice
-from pipython.pitools import waitonwalk
 from time import sleep
 import pygame
+
 
 
 def move_joystick(pidevice, joystick, pump,
@@ -12,8 +10,7 @@ def move_joystick(pidevice, joystick, pump,
                   right_xbound=150,
                   lower_ybound=0,
                   upper_ybound=150):
-    xpos = pidevice.qPOS()["1"]
-    ypos = pidevice.qPOS()["2"]
+
     zpos = pidevice.qPOS()["3"]
     zpos_final = 0
 
@@ -30,15 +27,22 @@ def move_joystick(pidevice, joystick, pump,
         if abs(delta_y) < 0.0025:
             delta_y = 0
 
-        xpos = max(left_xbound, min(right_xbound, xpos + speed * delta_x))
-        ypos = max(lower_ybound, min(upper_ybound, ypos + speed * delta_y))
+        xpos = max(left_xbound, min(right_xbound, pidevice.qPOS()["1"] + speed * delta_x))
+        ypos = max(lower_ybound, min(upper_ybound, pidevice.qPOS()["2"] + speed * delta_y))
 
         print(f"new x,y {xpos, ypos}, delta {delta_x, delta_y}, new z {zpos}")
+        print(pidevice.read('VEL?'))
 
-        pidevice.MOV(1, xpos)
-        pidevice.MOV(2, ypos)
+        if delta_x == 0 and delta_y == 0:
+            pidevice.MOV(1, pidevice.qPOS()["1"])
+            pidevice.MOV(2, pidevice.qPOS()["2"])
+        else:
+            pidevice.VEL(1, 20 * abs(delta_x))
+            pidevice.VEL(2, 20 * abs(delta_y))
+            pidevice.MOV(1, xpos)
+            pidevice.MOV(2, ypos)
 
-        sleep(0.1)
+        #sleep(0.1)
 
         if joystick.get_button(3) == True:
             print('reset pos')
@@ -62,11 +66,15 @@ def move_joystick(pidevice, joystick, pump,
 
         elif joystick.get_button(0) == True:
             print("done with joystick")
+            pidevice.VEL(1, 20)
+            pidevice.VEL(2, 20)
             sleep(2)
             break
 
         elif joystick.get_button(13) == True:
             print('ending collection')
+            pidevice.VEL(1, 20)
+            pidevice.VEL(2, 20)
             end_collection = True
             break
 
@@ -96,15 +104,16 @@ def move_joystick(pidevice, joystick, pump,
     return xpos, ypos, zpos_final, end_collection
 
 
+
 if __name__ == "__main__":
     pidevice = GCSDevice()
     pidevice.ConnectUSB(serialnum="120060503")
     print('connected: {:s}'.format(pidevice.qIDN().strip()))
 
-    pidevice.MOV(1, 122)
-    pidevice.MOV(2, 75)
-    pidevice.MOV(3, 132)
-    pidevice.MOV(4, 100)
+    #pidevice.MOV(1, 100)
+    #pidevice.MOV(2, 75)
+    #pidevice.MOV(3, 132)
+    #pidevice.MOV(4, 100)
     sleep(2)
 
     pygame.init()
@@ -113,4 +122,4 @@ if __name__ == "__main__":
     joystick.init()
     pygame.event.get()
 
-    move_joystick(pidevice, joystick)
+    move_joystick(pidevice, joystick, 3)
