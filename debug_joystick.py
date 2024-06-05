@@ -6,7 +6,7 @@ from time import sleep
 import pygame
 
 
-def move_joystick(pidevice, joystick,
+def move_joystick(pidevice, joystick, pump,
                   speed=1,
                   left_xbound=0,
                   right_xbound=150,
@@ -89,6 +89,9 @@ def move_joystick(pidevice, joystick,
             zpos -= 0.01
             pidevice.MOV(3, zpos)
             zpos_final = zpos
+
+        elif joystick.get_button(15) == True:
+            pump.run()
 
     return xpos, ypos, zpos_final, end_collection
 

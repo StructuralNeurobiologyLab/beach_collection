@@ -36,7 +36,7 @@ class SemiManualCollection:
         self.internal_water_level_control = True
         self.manual_water_refill = True
 
-        self.auto_loop = True
+        self.auto_loop = False
         self.interrupt = True
 
         if self.internal_water_level_control:
@@ -216,13 +216,13 @@ class SemiManualCollection:
                     self.check_events()
                     if self.interrupt:
                         self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(
-                            pidevice, self.joystick)
+                            pidevice, self.joystick, self.pump)
                         self.interrupt = False
                 else:
-                    self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick)
+                    self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick, self.pump)
                 if end_collection:
                     print('remove the wafer')
-                    _, _, _, _ = move_joystick(pidevice, self.joystick)
+                    _, _, _, _ = move_joystick(pidevice, self.joystick, self.pump)
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
                     self.save_stage_pos()
@@ -234,6 +234,9 @@ class SemiManualCollection:
                 # Pick section up (lowing the tip)
                 pidevice.MOV(3, self.pickup_pos_z)
                 sleep(1)
+                # detach section from knife
+                pidevice.MOV(1, pidevice.qPOS()["1"] - 5)
+                sleep(1)
                 # Move section to wafer boat
                 pidevice.MOV(1, self.dropoff_pos_xy[0])
                 pidevice.MOV(2, self.dropoff_pos_xy[1])
@@ -242,13 +245,13 @@ class SemiManualCollection:
                 if self.auto_loop:
                     self.check_events()
                     if self.interrupt:
-                        _, _, _, end_collection = move_joystick(pidevice, self.joystick)
+                        _, _, _, end_collection = move_joystick(pidevice, self.joystick, self.pump)
                         self.interrupt = False
                 else:
-                    _, _, _, end_collection = move_joystick(pidevice, self.joystick)
+                    _, _, _, end_collection = move_joystick(pidevice, self.joystick, self.pump)
                 if end_collection:
                     print('remove the wafer')
-                    _, _, _, _ = move_joystick(pidevice, self.joystick)
+                    _, _, _, _ = move_joystick(pidevice, self.joystick, self.pump)
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
                     self.mycon.close()
