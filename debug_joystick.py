@@ -5,6 +5,7 @@ import pygame
 
 
 def move_joystick(pidevice, joystick, pump,
+                  positions=False,
                   speed=1,
                   left_xbound=0,
                   right_xbound=150,
@@ -44,7 +45,14 @@ def move_joystick(pidevice, joystick, pump,
 
         #sleep(0.1)
 
-        if joystick.get_button(3) == True:
+        if joystick.get_button(0) == True:
+            print("done with joystick")
+            pidevice.VEL(1, 20)
+            pidevice.VEL(2, 20)
+            sleep(2)
+            break
+
+        elif joystick.get_button(3) == True:
             print('reset pos')
             pidevice.MOV(1, 122)
             pidevice.MOV(2, 75)
@@ -53,30 +61,6 @@ def move_joystick(pidevice, joystick, pump,
             sleep(5)
             xpos = pidevice.qPOS()["1"]
             ypos = pidevice.qPOS()["2"]
-
-        elif joystick.get_button(7) == True:
-            print('retract wafer')
-            wpos = pidevice.qPOS()["4"]
-            pidevice.MOV(4, wpos - 1)
-
-        elif joystick.get_button(6) == True:
-            print('retract wafer')
-            wpos = pidevice.qPOS()["4"]
-            pidevice.MOV(4, wpos - 10)
-
-        elif joystick.get_button(0) == True:
-            print("done with joystick")
-            pidevice.VEL(1, 20)
-            pidevice.VEL(2, 20)
-            sleep(2)
-            break
-
-        elif joystick.get_button(13) == True:
-            print('ending collection')
-            pidevice.VEL(1, 20)
-            pidevice.VEL(2, 20)
-            end_collection = True
-            break
 
         elif joystick.get_button(4) == True:
             zpos += 0.1
@@ -88,15 +72,52 @@ def move_joystick(pidevice, joystick, pump,
             pidevice.MOV(3, zpos)
             zpos_final = zpos
 
-        elif joystick.get_button(9) == True:
-            zpos += 0.01
-            pidevice.MOV(3, zpos)
-            zpos_final = zpos
+        elif joystick.get_button(6) == True:
+            print('retract wafer')
+            wpos = pidevice.qPOS()["4"]
+            pidevice.MOV(4, max(0, wpos - 10))
+
+        elif joystick.get_button(7) == True:
+            print('retract wafer')
+            wpos = pidevice.qPOS()["4"]
+            pidevice.MOV(4, max(0, wpos - 1))
 
         elif joystick.get_button(8) == True:
             zpos -= 0.01
             pidevice.MOV(3, zpos)
             zpos_final = zpos
+
+        elif joystick.get_button(9) == True:
+            zpos += 0.01
+            pidevice.MOV(3, zpos)
+            zpos_final = zpos
+
+        elif joystick.get_button(10) == True:
+            # return to pickup position without cut
+            if positions:
+                pidevice.VEL(1, 20)
+                pidevice.VEL(2, 20)
+                pidevice.MOV(3, positions['dropoff_pos_z'])
+                sleep(1)
+                pidevice.MOV(1, positions['pickup_pos_xy'][0])
+                pidevice.MOV(2, positions['pickup_pos_xy'][1])
+                sleep(10)
+
+        elif joystick.get_button(11) == True:
+            # return to dropoff position without cut
+            if positions:
+                pidevice.VEL(1, 20)
+                pidevice.VEL(2, 20)
+                pidevice.MOV(1, positions['dropoff_pos_xy'][0])
+                pidevice.MOV(2, positions['dropoff_pos_xy'][1])
+                sleep(10)
+
+        elif joystick.get_button(13) == True:
+            print('ending collection')
+            pidevice.VEL(1, 20)
+            pidevice.VEL(2, 20)
+            end_collection = True
+            break
 
         elif joystick.get_button(15) == True:
             pump.run()

@@ -78,20 +78,13 @@ class SemiManualCollection:
         #Set stage positions
         if os.path.isfile('stage_posS.json'):
             with open('stage_posS.json', 'r') as f:
-                stage_posS = json.load(f)
-            self.start_pos = stage_posS['start_pos']
-            self.stage_pos = self.start_pos
-            self.pickup_pos_xy = stage_posS['pickup_pos_xy']
-            self.pickup_pos_z = stage_posS['pickup_pos_z']
-            self.dropoff_pos_xy = stage_posS['dropoff_pos_xy']
-            self.dropoff_pos_z = stage_posS['dropoff_pos_z']
+                self.stage_posS = json.load(f)
         else:
-            self.start_pos = [112, 64, 115, 140]
-            self.stage_pos = self.start_pos
-            self.pickup_pos_xy = [112, 64]
-            self.pickup_pos_z = 122
-            self.dropoff_pos_xy = [60, 66]
-            self.dropoff_pos_z = 115
+            self.stage_posS['start_pos'] = [112, 64, 115, 140]
+            self.stage_posS['pickup_pos_xy'] = [112, 64]
+            self.stage_posS['pickup_pos_z'] = 122
+            self.stage_posS['dropoff_pos_xy'] = [60, 66]
+            self.stage_posS['dropoff_pos_z'] = 115
 
         self.main_menu()
         
@@ -127,7 +120,7 @@ class SemiManualCollection:
         elif c == '4':
             try:
                 sp = input('\nEnter position of wafer stage in mm:\n')
-                self.stage_pos[3] = int(sp)
+                #self.stage_pos[3] = int(sp)
             except ValueError:
                 print('An error occurred: Wafer position could not be changed')
                 input()
@@ -151,10 +144,10 @@ class SemiManualCollection:
         with GCSDevice() as pidevice:
             pidevice.ConnectUSB(serialnum="120060503")
             print('connected: {:s}'.format(pidevice.qIDN().strip()))
-            pidevice.MOV(1, self.stage_pos[0])
-            pidevice.MOV(2, self.stage_pos[1])
-            pidevice.MOV(3, self.stage_pos[2])
-            pidevice.MOV(4, self.stage_pos[3])
+            pidevice.MOV(1, self.stage_posS['start_pos'][0])
+            pidevice.MOV(2, self.stage_posS['start_pos'][1])
+            pidevice.MOV(3, self.stage_posS['start_pos'][2])
+            pidevice.MOV(4, self.stage_posS['start_pos'][3])
 
             if self.internal_water_level_control:
                 if not self.manual_water_refill:
@@ -215,11 +208,11 @@ class SemiManualCollection:
                 if self.auto_loop:
                     self.check_events()
                     if self.interrupt:
-                        self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(
+                        self.stage_posS['pickup_pos_xy'][0], self.stage_posS['pickup_pos_xy'][1], temp_pos_z, end_collection = move_joystick(
                             pidevice, self.joystick, self.pump)
                         self.interrupt = False
                 else:
-                    self.pickup_pos_xy[0], self.pickup_pos_xy[1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick, self.pump)
+                    self.stage_posS['pickup_pos_xy'][0], self.stage_posS['pickup_pos_xy'][1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick, self.pump)
                 if end_collection:
                     print('remove the wafer')
                     _, _, _, _ = move_joystick(pidevice, self.joystick, self.pump)
@@ -230,39 +223,40 @@ class SemiManualCollection:
                     print("Connection closed.")
                     break
                 if temp_pos_z > 0:
-                    self.pickup_pos_z = temp_pos_z
+                    self.stage_posS['pickup_pos_z'] = temp_pos_z
                 # Pick section up (lowing the tip)
-                pidevice.MOV(3, self.pickup_pos_z)
+                pidevice.MOV(3, self.stage_posS['pickup_pos_z'])
                 sleep(1)
                 # detach section from knife
                 pidevice.MOV(1, pidevice.qPOS()["1"] - 5)
                 sleep(1)
                 # Move section to wafer boat
-                pidevice.MOV(1, self.dropoff_pos_xy[0])
-                pidevice.MOV(2, self.dropoff_pos_xy[1])
+                pidevice.MOV(1, self.stage_posS['dropoff_pos_xy'][0])
+                pidevice.MOV(2, self.stage_posS['dropoff_pos_xy'][1])
                 sleep(10)
                 # Move section to wafer with joystick
                 if self.auto_loop:
                     self.check_events()
                     if self.interrupt:
-                        _, _, _, end_collection = move_joystick(pidevice, self.joystick, self.pump)
+                        _, _, _, end_collection = move_joystick(pidevice, self.joystick, self.pump, positions=self.stage_posS)
                         self.interrupt = False
                 else:
-                    _, _, _, end_collection = move_joystick(pidevice, self.joystick, self.pump)
+                    _, _, _, end_collection = move_joystick(pidevice, self.joystick, self.pump, positions=self.stage_posS)
                 if end_collection:
                     print('remove the wafer')
                     _, _, _, _ = move_joystick(pidevice, self.joystick, self.pump)
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
+                    self.save_stage_pos()
                     self.mycon.close()
                     print("Connection closed.")
                     break
                 # Lift tip
-                pidevice.MOV(3, self.dropoff_pos_z)
+                pidevice.MOV(3, self.stage_posS['dropoff_pos_z'])
                 sleep(1)
                 # Move arm back to pickup point
-                pidevice.MOV(1, self.pickup_pos_xy[0])
-                pidevice.MOV(2, self.pickup_pos_xy[1])
+                pidevice.MOV(1, self.stage_posS['pickup_pos_xy'][0])
+                pidevice.MOV(2, self.stage_posS['pickup_pos_xy'][1])
                 sleep(10)
 
     def calibrate_cap_sensor(self):
@@ -296,13 +290,14 @@ class SemiManualCollection:
             time.sleep(0.1)
 
     def save_stage_pos(self):
-        self.start_pos[0] = self.pickup_pos_xy[0]
-        self.start_pos[1] = self.pickup_pos_xy[1]
-        stage_posF = {'start_pos': self.start_pos,
-                      'pickup_pos_xy': self.pickup_pos_xy,
-                      'pickup_pos_z': self.pickup_pos_z,
-                      'dropoff_pos_xy': self.dropoff_pos_xy,
-                      'dropoff_pos_z': self.dropoff_pos_z}
+        self.stage_posS['start_pos'][0] = self.stage_posS['pickup_pos_xy'][0]
+        self.stage_posS['start_pos'][1] = self.stage_posS['pickup_pos_xy'][1]
+        stage_posF = {'start_pos': self.stage_posS['start_pos'],
+                      'pickup_pos_xy': self.stage_posS['pickup_pos_xy'],
+                      'pickup_pos_z': self.stage_posS['pickup_pos_z'],
+                      'dropoff_pos_xy': self.stage_posS['dropoff_pos_xy'],
+                      'dropoff_pos_z': self.stage_posS['dropoff_pos_z']}
+
         with open('stage_posS.json', 'w') as f:
             json.dump(stage_posF, f)
 
