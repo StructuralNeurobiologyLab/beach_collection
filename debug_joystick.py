@@ -80,7 +80,7 @@ def move_joystick(pidevice, joystick, pump,
         elif joystick.get_button(7) == True:
             print('retract wafer')
             wpos = pidevice.qPOS()["4"]
-            pidevice.MOV(4, max(0, wpos - 1))
+            pidevice.MOV(4, max(0, wpos - 0.2))
 
         elif joystick.get_button(8) == True:
             zpos -= 0.01

@@ -34,7 +34,7 @@ class SemiManualCollection:
         self.AXES = ['1', '2', '3', '4']
 
         self.internal_water_level_control = True
-        self.manual_water_refill = True
+        self.manual_water_refill = False
 
         self.auto_loop = False
         self.interrupt = True
@@ -142,16 +142,22 @@ class SemiManualCollection:
 
     def robot_collection(self):
         with GCSDevice() as pidevice:
+            if self.internal_water_level_control:
+                if not self.manual_water_refill:
+                    self.calibrate_cap_sensor()
+
             pidevice.ConnectUSB(serialnum="120060503")
             print('connected: {:s}'.format(pidevice.qIDN().strip()))
+            pidevice.VEL(1, 20)
+            pidevice.VEL(2, 20)
+            pidevice.VEL(3, 20)
+            pidevice.VEL(4, 20)
             pidevice.MOV(1, self.stage_posS['start_pos'][0])
             pidevice.MOV(2, self.stage_posS['start_pos'][1])
             pidevice.MOV(3, self.stage_posS['start_pos'][2])
             pidevice.MOV(4, self.stage_posS['start_pos'][3])
 
-            if self.internal_water_level_control:
-                if not self.manual_water_refill:
-                    self.calibrate_cap_sensor()
+
 
             while True:
                 ##### Cut the slice 
