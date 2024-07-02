@@ -13,7 +13,7 @@ class CamsViewer:
         self.cam2 = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
         self.cam2.Open()
         self.cam2.PixelFormat.SetValue("RGB8")
-        self.cam2.Gain.SetValue(20)
+        self.cam2.Gain.SetValue(5)
         self.cam2.ExposureTime.SetValue(2200)
         with self.cam2.GrabOne(1000) as res:
             img = res.GetArray()
@@ -24,9 +24,9 @@ class CamsViewer:
 
         # Pygame screen
         monitor = get_monitors()[0]
-        self.screen_width = int(monitor.width * 0.5)
-        self.screen_height = int(monitor.height * 0.5)
-        self.screen_width = int(monitor.height * 0.5)
+        self.screen_width = int(monitor.width * 0.75)
+        self.screen_height = int(monitor.height * 0.75)
+        self.screen_width = int(monitor.height * 0.75)
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Cam Viewer")
 
@@ -80,9 +80,9 @@ class CamsViewer:
                         elif event.key == pygame.K_DOWN:
                             self.zoom_out()
                     elif event.key == pygame.K_LEFT:
-                        self.pan_left()
-                    elif event.key == pygame.K_RIGHT:
                         self.pan_right()
+                    elif event.key == pygame.K_RIGHT:
+                        self.pan_left()
                     elif event.key == pygame.K_UP:
                         self.pan_up()
                     elif event.key == pygame.K_DOWN:
@@ -124,7 +124,7 @@ class CamsViewer:
             y_low = self.y - int(zoom * img.shape[1] * 0.5)
             y_high = self.y + int(zoom * img.shape[1] * 0.5)
 
-            img = cv2.resize(img[x_low:x_high, y_low:y_high, :], (self.screen_width, self.screen_height))
+            img = cv2.flip(cv2.resize(img[x_low:x_high, y_low:y_high, :], (self.screen_width, self.screen_height)), 0)
 
             self.image = pygame.surfarray.make_surface(img)
         #is_reading, img2 = self.cam1.read()
