@@ -8,12 +8,13 @@ class CamsViewer:
 
     def __init__(self):
 
+        # Camera
         self.image = None
         self.cam2 = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
         self.cam2.Open()
         self.cam2.PixelFormat.SetValue("RGB8")
         self.cam2.Gain.SetValue(20)
-        self.cam2.ExposureTime.SetValue(1200)
+        self.cam2.ExposureTime.SetValue(2200)
         with self.cam2.GrabOne(1000) as res:
             img = res.GetArray()
             self.x = img.shape[0] // 2
@@ -21,6 +22,7 @@ class CamsViewer:
             self.org_img_shape = img.shape
         #self.cam1 = cv2.VideoCapture(1)
 
+        # Pygame screen
         monitor = get_monitors()[0]
         self.screen_width = int(monitor.width * 0.5)
         self.screen_height = int(monitor.height * 0.5)
@@ -28,12 +30,28 @@ class CamsViewer:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Cam Viewer")
 
+        # Image display
         self.image_rect = pygame.Rect(0, 0, self.screen_width, self.screen_height)
+
+        # Ellipse tool
+        self.ellipse_color = "yellow"
+        self.ellipse_line_strength = 1
+        self.ellipse_dimensions = pygame.Rect(1, 1, 1, 1)
+        self.show_ellipse = False
+
+        # Edit ellipse mode
+        self.edit_ellipse_mode = False
+        self.ellipse_points = [None, None, None, None]
+        self.ee_mode_indicator_rect = pygame.Rect(0, 0, self.screen_width, self.screen_height)
 
         # Zoom
         self.zoom_level = 0
         self.zoom_levels = [1, 0.8, 0.66, 0.5, 0.4, 0.2, 0.13, 0.1]
         self.zoom = self.zoom_levels[self.zoom_level]
+
+        # Wafer
+        self.use_factor = 1 - 1/5.08    # define distance to the edge of the wafer
+        self.reduced = False
 
     def run(self):
         pygame.init()
@@ -46,21 +64,36 @@ class CamsViewer:
                 if event.type == pygame.QUIT:
                     running = False
 
-            if event.type == pygame.KEYDOWN:
-                if keys[pygame.K_LCTRL]:
-                    if event.key == pygame.K_UP:
-                        self.zoom_in()
+            if self.edit_ellipse_mode:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        for i in range(len(self.ellipse_points)):
+                            if not self.ellipse_points[i]:
+                                self.ellipse_points[i] = pygame.mouse.get_pos()
+                                break
+                self.check_ellipse_points()
+            else:
+                if event.type == pygame.KEYDOWN:
+                    if keys[pygame.K_LCTRL]:
+                        if event.key == pygame.K_UP:
+                            self.zoom_in()
+                        elif event.key == pygame.K_DOWN:
+                            self.zoom_out()
+                    elif event.key == pygame.K_LEFT:
+                        self.pan_left()
+                    elif event.key == pygame.K_RIGHT:
+                        self.pan_right()
+                    elif event.key == pygame.K_UP:
+                        self.pan_up()
                     elif event.key == pygame.K_DOWN:
-                        self.zoom_out()
-                elif event.key == pygame.K_LEFT:
-                    self.pan_left()
-                elif event.key == pygame.K_RIGHT:
-                    self.pan_right()
-                elif event.key == pygame.K_UP:
-                    self.pan_up()
-                elif event.key == pygame.K_DOWN:
-                    self.pan_down()
-
+                        self.pan_down()
+                    elif event.key == pygame.K_LALT:
+                        self.edit_ellipse_mode = True
+                    elif event.key == pygame.K_LSHIFT:
+                        if self.reduced:
+                            self.unreduce_ellipse()
+                        else:
+                            self.reduce_ellipse()
 
             self.draw()
             pygame.display.flip()
@@ -72,6 +105,15 @@ class CamsViewer:
         """Draws all elements on the screen"""
         self.screen.fill((0, 0, 0))
         self.screen.blit(self.image, self.image_rect)
+        if self.edit_ellipse_mode:
+            pygame.draw.rect(self.screen, "red", self.ee_mode_indicator_rect, 5)
+            for p in self.ellipse_points:
+                if p:
+                    p_rect = pygame.Rect(0, 0, 3, 3)
+                    p_rect.center = p
+                    pygame.draw.rect(self.screen, "white", p_rect)
+        if self.show_ellipse:
+            pygame.draw.ellipse(self.screen, self.ellipse_color, self.ellipse_dimensions, self.ellipse_line_strength)
 
     def get_image(self):
         with self.cam2.GrabOne(1000) as res:
@@ -134,6 +176,42 @@ class CamsViewer:
         if y_high + step <= self.org_img_shape[0]:
             self.y += step
 
+    def check_ellipse_points(self):
+        if None not in self.ellipse_points:
+            self.calc_ellipse_rect()
+
+    def calc_ellipse_rect(self):
+        xmin = min([i[0] for i in self.ellipse_points])
+        xmax = max([i[0] for i in self.ellipse_points])
+        ymin = min([i[1] for i in self.ellipse_points])
+        ymax = max([i[1] for i in self.ellipse_points])
+
+        self.ellipse_dimensions = pygame.Rect(xmin, ymin, xmax-xmin, ymax-ymin)
+
+        self.edit_ellipse_mode = False
+        self.show_ellipse = True
+
+    def reduce_ellipse(self):
+        center = self.ellipse_dimensions.center
+        width = self.ellipse_dimensions.width
+        height = self.ellipse_dimensions.height
+        print(height, width)
+
+        self.ellipse_dimensions = pygame.Rect(0, 0, width*self.use_factor, height*self.use_factor)
+        self.ellipse_dimensions.center = center
+        print(self.ellipse_dimensions.height,self.ellipse_dimensions.width)
+        self.reduced = True
+
+    def unreduce_ellipse(self):
+        center = self.ellipse_dimensions.center
+        width = self.ellipse_dimensions.width
+        height = self.ellipse_dimensions.height
+        print(height, width)
+
+        self.ellipse_dimensions = pygame.Rect(0, 0, width / self.use_factor, height / self.use_factor)
+        self.ellipse_dimensions.center = center
+        print(self.ellipse_dimensions.height, self.ellipse_dimensions.width)
+        self.reduced = False
 
 if __name__ == '__main__':
     viewer = CamsViewer()
