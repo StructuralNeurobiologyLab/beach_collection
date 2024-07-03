@@ -62,6 +62,7 @@ class CamsViewer:
             for event in pygame.event.get():
                 keys = pygame.key.get_pressed()
                 if event.type == pygame.QUIT:
+                    self.cam2.Close()
                     running = False
 
             if self.edit_ellipse_mode:
