@@ -51,6 +51,12 @@ class CamsViewer:
         self.use_factor = 1 - 1/5.08    # define distance to the edge of the wafer
         self.reduced = False
 
+        # Image handling
+        self.save_image_flag = False
+        self.save_image_count = 0
+        self.sub_image_count = 0
+        self.sub_image_threshold = 100
+
     def run(self):
         pygame.init()
         clock = pygame.time.Clock()
@@ -70,6 +76,9 @@ class CamsViewer:
                     elif event.key == pygame.K_DOWN:
                         self.exposure -= 1
                         self.cam2.set(cv2.CAP_PROP_EXPOSURE, self.exposure)
+                    elif event.key == pygame.K_p:
+                        self.save_image_flag = True
+                        print('saving image')
 
             self.draw()
             pygame.display.flip()
@@ -85,7 +94,8 @@ class CamsViewer:
 
     def get_image(self):
         img = self.grab_image()
-
+        if self.save_image_flag:
+            self.save_image(img)
         img = cv2.cvtColor(cv2.rotate(cv2.flip(cv2.resize(img, (self.screen_width, self.screen_height)), 0), cv2.ROTATE_90_CLOCKWISE), cv2.COLOR_BGR2RGB)
 
         self.image = pygame.surfarray.make_surface(img)
@@ -103,6 +113,16 @@ class CamsViewer:
                 return img1
             else:
                 raise ConnectionError('Cam Port 0 not reading')
+
+    def save_image(self, img):
+        self.sub_image_count += 1
+        if self.sub_image_count < self.sub_image_threshold:
+            cv2.imwrite('images/image' + str(self.save_image_count) + '_' + str(self.sub_image_count) + '.png', img)
+        else:
+            self.save_image_flag = False
+            self.sub_image_count = 0
+            self.save_image_count += 1
+
 
 if __name__ == '__main__':
     viewer = CamsViewer()

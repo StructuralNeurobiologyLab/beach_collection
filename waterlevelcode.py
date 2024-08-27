@@ -20,7 +20,7 @@ TCP_ADDRESS = '169.254.168.150'
 
 #x is the procentage shown at the ue cap controller at the optimal water level ener x manually at callabration
 
-x = 67
+x = 64
 y = x * 0.1
 ue = y + 0.5
 ut = y - 0.5

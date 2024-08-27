@@ -7,7 +7,7 @@ from screeninfo import get_monitors
 class CamsViewer:
 
     def __init__(self):
-
+        self.save_image = True
         # Camera
         self.image = None
         self.cam2 = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
@@ -124,6 +124,11 @@ class CamsViewer:
             x_high = self.x + int(zoom * img.shape[0] * 0.5)
             y_low = self.y - int(zoom * img.shape[1] * 0.5)
             y_high = self.y + int(zoom * img.shape[1] * 0.5)
+
+            if self.save_image:
+                self.save_image = False
+                img2 = cv2.cvtColor(cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE), cv2.COLOR_BGR2RGB)
+                cv2.imwrite('images/wafer_test.png', img2)
 
             img = cv2.flip(cv2.resize(img[x_low:x_high, y_low:y_high, :], (self.screen_width, self.screen_height)), 0)
 

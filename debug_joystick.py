@@ -1,10 +1,11 @@
 from pipython import GCSDevice
 from time import sleep
 import pygame
+from motorcontrol_pico_class import SerialInstrument
 
 
 
-def move_joystick(pidevice, joystick, pump,
+def move_joystick(pidevice, joystick, pump, abs_rot=0,
                   positions=False,
                   speed=1,
                   left_xbound=0,
@@ -16,6 +17,10 @@ def move_joystick(pidevice, joystick, pump,
     zpos_final = 0
 
     end_collection = False
+
+    COM_PORT = "COM6"  # Instrument port location
+    TIMEOUT = 1
+    instrument = SerialInstrument(COM_PORT, TIMEOUT)
 
     while True:
         pygame.event.get()
@@ -112,15 +117,26 @@ def move_joystick(pidevice, joystick, pump,
                 pidevice.MOV(2, positions['dropoff_pos_xy'][1])
                 sleep(10)
 
+        elif joystick.get_button(12) == True:
+            pump.run()
+
         elif joystick.get_button(13) == True:
             print('ending collection')
             pidevice.VEL(1, 20)
             pidevice.VEL(2, 20)
+            instrument.disconnect()
             end_collection = True
             break
 
+        elif joystick.get_button(14) == True:
+            # rotation left
+            print(instrument.write("left",8,1))
+            abs_rot += 1
+
         elif joystick.get_button(15) == True:
-            pump.run()
+            # rotation left
+            print(instrument.write("right", 8, 1))
+            abs_rot += 1
 
     return xpos, ypos, zpos_final, end_collection
 
