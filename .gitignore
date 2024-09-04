@@ -4,3 +4,4 @@ scratch*
 *json
 *txt
 images
+__pycache__
