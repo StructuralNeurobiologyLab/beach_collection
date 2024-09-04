@@ -1,5 +1,5 @@
 import cv2
-
+import time
 import pygame
 from screeninfo import get_monitors
 
@@ -55,7 +55,7 @@ class CamsViewer:
         self.save_image_flag = False
         self.save_image_count = 0
         self.sub_image_count = 0
-        self.sub_image_threshold = 100
+        self.sub_image_threshold = 2
 
     def run(self):
         pygame.init()
@@ -117,7 +117,7 @@ class CamsViewer:
     def save_image(self, img):
         self.sub_image_count += 1
         if self.sub_image_count < self.sub_image_threshold:
-            cv2.imwrite('images/image' + str(self.save_image_count) + '_' + str(self.sub_image_count) + '.png', img)
+            cv2.imwrite('images/image' + str(self.save_image_count) + '_' + str(self.sub_image_count) + '_' + str(time.time()) + '.png', img)
         else:
             self.save_image_flag = False
             self.sub_image_count = 0
