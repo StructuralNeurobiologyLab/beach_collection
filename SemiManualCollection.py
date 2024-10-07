@@ -80,11 +80,11 @@ class SemiManualCollection:
             with open('stage_posS.json', 'r') as f:
                 self.stage_posS = json.load(f)
         else:
-            self.stage_posS['start_pos'] = [112, 64, 115, 140]
-            self.stage_posS['pickup_pos_xy'] = [112, 64]
+            self.stage_posS['start_pos'] = [132, 91, 120, 140]
+            self.stage_posS['pickup_pos_xy'] = [132, 91]
             self.stage_posS['pickup_pos_z'] = 122
-            self.stage_posS['dropoff_pos_xy'] = [60, 66]
-            self.stage_posS['dropoff_pos_z'] = 115
+            self.stage_posS['dropoff_pos_xy'] = [70, 91]
+            self.stage_posS['dropoff_pos_z'] = 120
 
         self.main_menu()
         

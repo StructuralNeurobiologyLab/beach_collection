@@ -17,10 +17,11 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
     zpos_final = 0
 
     end_collection = False
+    finished = False
 
-    COM_PORT = "COM6"  # Instrument port location
-    TIMEOUT = 1
-    instrument = SerialInstrument(COM_PORT, TIMEOUT)
+    # COM_PORT = "COM6"  # Instrument port location
+    # TIMEOUT = 1
+    # instrument = SerialInstrument(COM_PORT, TIMEOUT)
 
     while True:
         pygame.event.get()
@@ -54,7 +55,7 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
             print("done with joystick")
             pidevice.VEL(1, 20)
             pidevice.VEL(2, 20)
-            sleep(2)
+            sleep(0.1)
             break
 
         elif joystick.get_button(3) == True:
@@ -118,26 +119,28 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
                 sleep(10)
 
         elif joystick.get_button(12) == True:
-            pump.run()
+            if pump:
+                pump.run()
 
         elif joystick.get_button(13) == True:
             print('ending collection')
             pidevice.VEL(1, 20)
             pidevice.VEL(2, 20)
-            instrument.disconnect()
+
+            #instrument.disconnect()
+
             end_collection = True
             break
 
-        elif joystick.get_button(14) == True:
-            # rotation left
-            print(instrument.write("left",8,1))
-            abs_rot += 1
-
-        elif joystick.get_button(15) == True:
-            # rotation left
-            print(instrument.write("right", 8, 1))
-            abs_rot += 1
-
+        # elif joystick.get_button(14) == True:
+        #     # rotation left
+        #     print(instrument.write("left",8,1))
+        #     abs_rot += 1
+        #
+        # elif joystick.get_button(15) == True:
+        #     # rotation left
+        #     print(instrument.write("right", 8, 1))
+        #     abs_rot += 1
     return xpos, ypos, zpos_final, end_collection
 
 
