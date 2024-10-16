@@ -5,20 +5,14 @@ Created on Sep 04 16:02:23 2024
 """
 
 import os
-import subprocess
-import json
-from pipython import GCSDevice
-from pipython.pitools import waitonwalk
 
-import serial
-import time
-from time import sleep
-from Wafer_sim import square
+import json
+
 from debug_joystick import move_joystick
 import time
 
 from pipython import GCSDevice
-from pipython.pitools import waitonwalk
+
 from time import sleep
 import pygame
 
@@ -56,7 +50,7 @@ class SemiManualCollection:
             self.DIA = 38
 
             self.dev = ne1000.Ne1000Serial(self.PORT)
-            self.volume = ne1000.Ne1000Volume(2, 'ml')
+            self.volume = ne1000.Ne1000Volume(0.8, 'ml')
             self.rate = ne1000.Ne1000Rate(10, 'MM')
 
             self.pump = ne1000.Ne1000(self.dev, self.ADDRESS)
@@ -66,6 +60,8 @@ class SemiManualCollection:
             self.pump.direction_infuse()
         else:
             self.pump = None
+
+        self.refilled = False
 
         pygame.init()
         pygame.joystick.init()
@@ -93,8 +89,6 @@ class SemiManualCollection:
     def main_menu(self):
         print('\n\n######################\n\nMain Menu\n\n######################\n\n')
         print('1) Start collection with Robot\n')
-        print('2) Change cutting thickness\n')
-        print('3) Change cutting speed\n')
         print('4) Change wafer position\n')
 
         c = input('\nChoose an option:\n')
@@ -130,17 +124,15 @@ class SemiManualCollection:
             pidevice.MOV(3, self.stage_posS['start_pos'][2])
             pidevice.MOV(4, self.stage_posS['start_pos'][3])
             time.sleep(10)
-            
+
             #p = subprocess.Popen(['python', 'MicrotomeControlV2.py', self.log], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
 
             while True:
-                if not self.cutting_stopped:
+                if not self.cutting_stopped and self.cycle_count != 1:
                     self.write_log()
                 
-                if self.internal_water_level_control:
-                    if not self.manual_water_refill:
-                        self.water_level_control()
+
 
                 # Adjust pickup point
 
@@ -170,14 +162,26 @@ class SemiManualCollection:
                 # Pick section up (lowing the tip)
                 pidevice.MOV(3, self.stage_posS['pickup_pos_z'])
                 sleep(0.2)
+                if self.cycle_count == 1:
+                    self.write_log()
                 # detach section from knife
                 pidevice.MOV(1, pidevice.qPOS()["1"] - 5)
                 sleep(0.5)
+
                 # Move section to wafer boat
                 pidevice.MOV(1, self.stage_posS['dropoff_pos_xy'][0])
                 pidevice.MOV(2, self.stage_posS['dropoff_pos_xy'][1])
-                sleep(4)
+
+                if self.internal_water_level_control:
+                    if not self.manual_water_refill:
+                        self.water_level_control()
+                if self.refilled:
+                    self.refilled = False
+                else:
+                    sleep(4)
                 # Move section to wafer with joystick
+
+
 
                 _, _, _, end_collection = move_joystick(pidevice, self.joystick, self.pump, positions=self.stage_posS)
                 if end_collection and not self.cutting_stopped:
@@ -226,7 +230,7 @@ class SemiManualCollection:
             raise ValueError('Large change in cap sensor reading detected. Please check the cap sensor for water drops.')
         if waterlevel > self.ue:
             self.pump.run()
-            time.sleep(15)
+            time.sleep(5)
     #  if waterlevel < ut:
     #     pump = ne1000.Ne1000(dev, ADDRESS)
     #     pump.diameter_mm(DIA)

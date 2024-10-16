@@ -47,7 +47,7 @@ while not waterlevel_low:
         waterlevel = ncdt6500_decode(raw_data)
     if waterlevel > ue:
         pump.run()
-        time.sleep(15)
+        time.sleep(2)
   #  if waterlevel < ut:
    #     pump = ne1000.Ne1000(dev, ADDRESS)
    #     pump.diameter_mm(DIA)
