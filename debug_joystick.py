@@ -11,13 +11,15 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
                   left_xbound=0,
                   right_xbound=150,
                   lower_ybound=0,
-                  upper_ybound=150):
+                  upper_ybound=150,
+                  pickup=False):
 
     zpos = pidevice.qPOS()["3"]
     zpos_final = 0
 
     end_collection = False
     finished = False
+    move_locked = True
 
     # COM_PORT = "COM6"  # Instrument port location
     # TIMEOUT = 1
@@ -28,6 +30,10 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
 
         delta_y = joystick.get_axis(0)  # todo: remove -1 after calibration
         delta_x = -joystick.get_axis(1)
+
+        if pickup and move_locked:
+            delta_x = 0
+            delta_y = 0
 
         if abs(delta_x) < 0.0025:
             delta_x = 0
@@ -59,14 +65,13 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
             break
 
         elif joystick.get_button(3) == True:
-            print('reset pos')
-            pidevice.MOV(1, 122)
-            pidevice.MOV(2, 75)
-            pidevice.MOV(3, 132)
-            pidevice.MOV(4, 100)
-            sleep(5)
-            xpos = pidevice.qPOS()["1"]
-            ypos = pidevice.qPOS()["2"]
+            print('toggle pickup pos xy')
+            if move_locked == True:
+                move_locked = False
+                print('move unlocked')
+            else:
+                move_locked = True
+                print('move locked')
 
         elif joystick.get_button(4) == True:
             zpos += 0.1

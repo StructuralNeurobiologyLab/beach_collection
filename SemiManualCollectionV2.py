@@ -35,8 +35,8 @@ class SemiManualCollection:
 
         self.AXES = ['1', '2', '3', '4']
 
-        self.internal_water_level_control = False
-        self.manual_water_refill = True
+        self.internal_water_level_control = True
+        self.manual_water_refill = False
 
         self.auto_loop = False
         self.interrupt = True
@@ -78,11 +78,11 @@ class SemiManualCollection:
                 self.stage_posS = json.load(f)
         else:
             self.stage_posS = {}
-            self.stage_posS['start_pos'] = [132, 91, 120, 140]
+            self.stage_posS['start_pos'] = [132, 91, 108, 140]
             self.stage_posS['pickup_pos_xy'] = [132, 91]
-            self.stage_posS['pickup_pos_z'] = 122
-            self.stage_posS['dropoff_pos_xy'] = [70, 91]
-            self.stage_posS['dropoff_pos_z'] = 120
+            self.stage_posS['pickup_pos_z'] = 108
+            self.stage_posS['dropoff_pos_xy'] = [60, 91]
+            self.stage_posS['dropoff_pos_z'] = 108
 
         self.main_menu()
         
@@ -129,14 +129,17 @@ class SemiManualCollection:
 
 
             while True:
-                if not self.cutting_stopped and self.cycle_count != 1:
+                if not self.cutting_stopped:
                     self.write_log()
                 
-
+                if self.cycle_count == 1:
+                    pickup = False
+                else:
+                    pickup = True
 
                 # Adjust pickup point
 
-                self.stage_posS['pickup_pos_xy'][0], self.stage_posS['pickup_pos_xy'][1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick, self.pump)
+                self.stage_posS['pickup_pos_xy'][0], self.stage_posS['pickup_pos_xy'][1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick, self.pump, pickup=pickup)
                 if end_collection and not self.cutting_stopped:
                     print('remove the wafer')
                     self.cycle_count = 'end'
@@ -161,7 +164,7 @@ class SemiManualCollection:
                     self.stage_posS['pickup_pos_z'] = temp_pos_z
                 # Pick section up (lowing the tip)
                 pidevice.MOV(3, self.stage_posS['pickup_pos_z'])
-                sleep(0.2)
+                sleep(0.5)
                 if self.cycle_count == 1:
                     self.write_log()
                 # detach section from knife

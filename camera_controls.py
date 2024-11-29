@@ -13,8 +13,8 @@ class CamsViewer:
         self.cam2 = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
         self.cam2.Open()
         self.cam2.PixelFormat.SetValue("RGB8")
-        self.cam2.Gain.SetValue(5)
-        self.cam2.ExposureTime.SetValue(2200)
+        self.cam2.Gain.SetValue(1)
+        self.cam2.ExposureTime.SetValue(3200)
         with self.cam2.GrabOne(1000) as res:
             img = res.GetArray()
             self.x = img.shape[0] // 2

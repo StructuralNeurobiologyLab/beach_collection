@@ -9,21 +9,23 @@ def check_robot_fb(slice_count, logs):
     while True:
         try:
             file_list = sorted(os.listdir(logs))
-
-            fb = file_list[-1][0:-4]
-            if fb == 'end':
-                return True, True
-            elif int(fb) == slice_count:
+            if not file_list:
                 return False, False
             else:
-                return True, False
+                fb = file_list[-1][0:-4]
+                if fb == 'end':
+                    return True, True
+                elif int(fb) >= slice_count:
+                    return False, False
+                else:
+                    return True, False
         except OSError:
             print('error when reading file list')
 
 
 def run_cutting():
     
-    slice_count = 1
+    slice_count = 0
     robot_fb = None
     logs = 'logs\\' + sorted(os.listdir('logs'))[-1] + '\\'
     if not os.path.isdir(logs):

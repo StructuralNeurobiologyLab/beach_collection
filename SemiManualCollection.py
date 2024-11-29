@@ -74,7 +74,7 @@ class SemiManualCollection:
         print("Setting cutting speed to 0.8mm/s...")
         self.sd = 800
 
-
+        self.stage_posS = {}
         #Set stage positions
         if os.path.isfile('stage_posS.json'):
             with open('stage_posS.json', 'r') as f:
