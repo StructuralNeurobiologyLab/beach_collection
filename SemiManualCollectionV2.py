@@ -31,8 +31,9 @@ class SemiManualCollection:
         self.log = 'logs\\' + str(startup_t) + '\\'
 
         os.makedirs(self.log)
-        self.cycle_count = 1
-
+        self.cycle_count = 0
+        self.write_log()
+        self.cycle_count = 0
         self.AXES = ['1', '2', '3', '4']
 
         self.internal_water_level_control = True
@@ -129,17 +130,17 @@ class SemiManualCollection:
 
 
             while True:
-                if not self.cutting_stopped:
-                    self.write_log()
+
                 
-                if self.cycle_count == 1:
-                    pickup = False
-                else:
-                    pickup = True
+                #if self.cycle_count == 1:
+                #    pickup = False
+                #else:
+                #    pickup = True
+                pickup = True
 
                 # Adjust pickup point
 
-                self.stage_posS['pickup_pos_xy'][0], self.stage_posS['pickup_pos_xy'][1], temp_pos_z, end_collection = move_joystick(pidevice, self.joystick, self.pump, pickup=pickup)
+                self.stage_posS['pickup_pos_xy'][0], self.stage_posS['pickup_pos_xy'][1], temp_pos_z, end_collection, self.cycle_count = move_joystick(pidevice, self.joystick, self.pump, self.cycle_count, self.log, pickup=pickup)
                 if end_collection and not self.cutting_stopped:
                     print('remove the wafer')
                     self.cycle_count = 'end'
@@ -164,12 +165,15 @@ class SemiManualCollection:
                     self.stage_posS['pickup_pos_z'] = temp_pos_z
                 # Pick section up (lowing the tip)
                 pidevice.MOV(3, self.stage_posS['pickup_pos_z'])
-                sleep(0.5)
+                sleep((self.stage_posS['pickup_pos_z']-self.stage_posS['dropoff_pos_z'])/20 + 0.2)
                 if self.cycle_count == 1:
                     self.write_log()
                 # detach section from knife
                 pidevice.MOV(1, pidevice.qPOS()["1"] - 5)
                 sleep(0.5)
+
+                #if not self.cutting_stopped:
+                #    self.write_log()
 
                 # Move section to wafer boat
                 pidevice.MOV(1, self.stage_posS['dropoff_pos_xy'][0])
@@ -181,12 +185,12 @@ class SemiManualCollection:
                 if self.refilled:
                     self.refilled = False
                 else:
-                    sleep(4)
+                    sleep(abs((self.stage_posS['pickup_pos_xy'][0]-5) - self.stage_posS['dropoff_pos_xy'][0]) / 20 + 0.2)
                 # Move section to wafer with joystick
 
 
 
-                _, _, _, end_collection = move_joystick(pidevice, self.joystick, self.pump, positions=self.stage_posS)
+                _, _, _, end_collection, self.cycle_count = move_joystick(pidevice, self.joystick, self.pump, self.cycle_count, self.log, positions=self.stage_posS)
                 if end_collection and not self.cutting_stopped:
                     print('remove the wafer')
                     self.cycle_count = 'end'
@@ -207,14 +211,15 @@ class SemiManualCollection:
                     self.save_stage_pos()
                     print("Connection closed.")
                     break
-                # Lift tip
+                # Lift tip and retract wafer holder
+                pidevice.MOV(4, pidevice.qPOS()["4"] - 0.4)
+                sleep(1.5)
                 pidevice.MOV(3, self.stage_posS['dropoff_pos_z'])
                 sleep(0.2)
-                # Move arm back to pickup point and retract wafer holder
+                # Move arm back to pickup point
                 pidevice.MOV(1, self.stage_posS['pickup_pos_xy'][0])
                 pidevice.MOV(2, self.stage_posS['pickup_pos_xy'][1])
-                pidevice.MOV(4, pidevice.qPOS()["4"] - 0.2)
-                sleep(6)
+                sleep(abs(pidevice.qPOS()["1"] - self.stage_posS['pickup_pos_xy'][0])/20+0.2)
 
     def calibrate_cap_sensor(self):
         cap_reading = input('Please adjust the water level and the Z position of the cap sensor.\nThen enter the output of the cap sensor (in percent) to calibrate the reading:\n')

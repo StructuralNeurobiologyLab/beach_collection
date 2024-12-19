@@ -1,11 +1,12 @@
 from pipython import GCSDevice
 from time import sleep
 import pygame
+import math
 from motorcontrol_pico_class import SerialInstrument
 
 
 
-def move_joystick(pidevice, joystick, pump, abs_rot=0,
+def move_joystick(pidevice, joystick, pump, slice_count, log, abs_rot=0,
                   positions=False,
                   speed=1,
                   left_xbound=0,
@@ -25,7 +26,16 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
     # TIMEOUT = 1
     # instrument = SerialInstrument(COM_PORT, TIMEOUT)
 
+    button_8 = False
+
+    new_attempt = False
+    cut_done = False
+
     while True:
+        if positions:
+            dist = math.sqrt((positions['dropoff_pos_xy'][0] - pidevice.qPOS()["1"])**2 + (positions['dropoff_pos_xy'][1] - pidevice.qPOS()["2"])**2)
+        else:
+            dist = 0
         pygame.event.get()
 
         delta_y = joystick.get_axis(0)  # todo: remove -1 after calibration
@@ -91,12 +101,12 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
         elif joystick.get_button(7) == True:
             print('retract wafer')
             wpos = pidevice.qPOS()["4"]
-            pidevice.MOV(4, max(0, wpos - 0.2))
+            pidevice.MOV(4, max(0, wpos - 0.1))
 
         elif joystick.get_button(8) == True:
-            zpos -= 0.01
-            pidevice.MOV(3, zpos)
-            zpos_final = zpos
+            button_8 = True
+            # make cut
+
 
         elif joystick.get_button(9) == True:
             zpos += 0.01
@@ -106,13 +116,15 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
         elif joystick.get_button(10) == True:
             # return to pickup position without cut
             if positions:
+                new_attempt = True
                 pidevice.VEL(1, 20)
                 pidevice.VEL(2, 20)
                 pidevice.MOV(3, positions['dropoff_pos_z'])
+                zpos = positions['dropoff_pos_z']
                 sleep(1)
                 pidevice.MOV(1, positions['pickup_pos_xy'][0])
                 pidevice.MOV(2, positions['pickup_pos_xy'][1])
-                sleep(10)
+                sleep(abs(positions['pickup_pos_xy'][0] - positions['dropoff_pos_xy'][0])/20+0.1)
 
         elif joystick.get_button(11) == True:
             # return to dropoff position without cut
@@ -121,7 +133,8 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
                 pidevice.VEL(2, 20)
                 pidevice.MOV(1, positions['dropoff_pos_xy'][0])
                 pidevice.MOV(2, positions['dropoff_pos_xy'][1])
-                sleep(10)
+                sleep(abs(positions['pickup_pos_xy'][0] - positions['dropoff_pos_xy'][0])/20+0.1)
+                new_attempt = False
 
         elif joystick.get_button(12) == True:
             if pump:
@@ -137,6 +150,24 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
             end_collection = True
             break
 
+        elif button_8 and not joystick.get_button(8):
+            button_8 = False
+            fn = str(slice_count)
+            while len(fn) < 7:
+                fn = '0' + fn
+            with open(log + fn + '.txt', 'w') as f:
+                pass
+            slice_count += 1
+
+        elif not new_attempt and not cut_done and dist > 5:
+            cut_done = True
+            fn = str(slice_count)
+            while len(fn) < 7:
+                fn = '0' + fn
+            with open(log + fn + '.txt', 'w') as f:
+                pass
+            slice_count += 1
+
         # elif joystick.get_button(14) == True:
         #     # rotation left
         #     print(instrument.write("left",8,1))
@@ -146,7 +177,7 @@ def move_joystick(pidevice, joystick, pump, abs_rot=0,
         #     # rotation left
         #     print(instrument.write("right", 8, 1))
         #     abs_rot += 1
-    return xpos, ypos, zpos_final, end_collection
+    return xpos, ypos, zpos_final, end_collection, slice_count
 
 
 

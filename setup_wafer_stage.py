@@ -43,6 +43,7 @@ def move_wafer(pidevice, joystick,lower_ybound=0, upper_ybound=150):
                     else:
                         raise ValueError
                 except ValueError:
+
                     print('ValueError: Please enter a valid value')
 
         elif joystick.get_button(13) == True:

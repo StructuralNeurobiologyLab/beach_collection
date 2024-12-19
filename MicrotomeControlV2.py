@@ -10,7 +10,7 @@ def check_robot_fb(slice_count, logs):
         try:
             file_list = sorted(os.listdir(logs))
             if not file_list:
-                return False, False
+                return True, False
             else:
                 fb = file_list[-1][0:-4]
                 if fb == 'end':
@@ -25,7 +25,7 @@ def check_robot_fb(slice_count, logs):
 
 def run_cutting():
     
-    slice_count = 0
+    slice_count = 1
     robot_fb = None
     logs = 'logs\\' + sorted(os.listdir('logs'))[-1] + '\\'
     if not os.path.isdir(logs):
@@ -38,6 +38,31 @@ def run_cutting():
     part_id = mycon.get_part_id()
 
     while True:
+        stopping, ending = check_robot_fb(slice_count, logs)
+        if stopping:
+            print("Turn motor off...")
+            motor_off = mycon.cutting_motor_off()
+            motor_status = mycon.cutting_motor_status()
+            if motor_status[7:9] == b'01':
+                print("it's on")
+                break
+            elif motor_status[7:9] == b'00':
+                print("it's off")
+            elif motor_status[7:9] == b'E0':
+                print("invalid callabration")
+                break
+            else:
+                print("invalid response")
+                break
+
+        while stopping:
+            if ending:
+                return None
+            time.sleep(1)
+            stopping, ending = check_robot_fb(slice_count, logs)
+
+
+
         print('Slice count:', slice_count)
         ##### Cut the slice 
         print("Turn motor on...")
@@ -72,28 +97,7 @@ def run_cutting():
 
 
 
-        stopping, ending = check_robot_fb(slice_count, logs)
-        if stopping:
-            print("Turn motor off...")
-            motor_off = mycon.cutting_motor_off()
-            motor_status = mycon.cutting_motor_status()
-            if motor_status[7:9] == b'01':
-                print("it's on")
-                break
-            elif motor_status[7:9] == b'00':
-                print("it's off")
-            elif motor_status[7:9] == b'E0':
-                print("invalid callabration")
-                break
-            else:
-                print("invalid response")
-                break
 
-        while stopping:
-            if ending:
-                return None
-            time.sleep(1)
-            stopping, ending = check_robot_fb(slice_count, logs)
 
         slice_count += 1
 
