@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import time
 import pygame
@@ -11,7 +13,7 @@ class CamsViewer:
         # Camera
         self.image = None
         self.cam2 = cv2.VideoCapture(0)
-        self.exposure = -4
+        self.exposure = -7
         self.cam2.set(cv2.CAP_PROP_EXPOSURE, self.exposure)
         #self.cam2.set(cv2.CAP_PROP_GAIN, self.exposure)
         img = self.grab_image()
@@ -56,6 +58,7 @@ class CamsViewer:
         self.save_image_count = 0
         self.sub_image_count = 0
         self.sub_image_threshold = 2
+        self.subfolder = '/250117/'
 
     def run(self):
         pygame.init()
@@ -115,13 +118,22 @@ class CamsViewer:
                 raise ConnectionError('Cam Port 0 not reading')
 
     def save_image(self, img):
-        self.sub_image_count += 1
-        if self.sub_image_count < self.sub_image_threshold:
-            cv2.imwrite('images/image' + str(self.save_image_count) + '_' + str(self.sub_image_count) + '_' + str(time.time()) + '.png', img)
-        else:
-            self.save_image_flag = False
-            self.sub_image_count = 0
-            self.save_image_count += 1
+        #self.sub_image_count += 1
+
+        cv2.imwrite('images' + self.subfolder + 'image' + str(self.save_image_count) + '_' + str(self.sub_image_count) + '_' + str(time.time()) + '.png', img)
+
+        self.save_image_count += 1
+
+    def set_subfolder(self, f):
+        self.subfolder = f
+        if not os.path.isdir('images' + self.subfolder):
+            os.makedirs('images' + self.subfolder)
+
+    def set_subimage_threshold(self, t):
+        self.sub_image_threshold = t
+
+    def set_save_flag(self, f):
+        self.save_image_flag = f
 
 
 if __name__ == '__main__':
