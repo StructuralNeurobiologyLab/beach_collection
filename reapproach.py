@@ -1,7 +1,6 @@
 import os
 import time
 
-from leicame import LeicaMicrotomeController
 
 import numpy as np
 import cv2
@@ -10,9 +9,14 @@ from screeninfo import get_monitors
 
 
 
-class CamsViewer:
+class Reapproach:
 
     def __init__(self):
+
+        startup_t = int(time.time())
+        self.log = 'logs\\' + str(startup_t) + '_r' + '\\'
+
+        os.makedirs(self.log)
         
         # Detection
         self.white_px_threshold = 250
@@ -62,10 +66,14 @@ class CamsViewer:
         self.subfolder = '/250117/'
 
         # Microtome
-        self.mycon = LeicaMicrotomeController()
-        print("Getting Part ID...")
-        part_id = self.mycon.get_part_id()
+
         self.stopping = True
+
+        self.timer = 20
+        self.t0 = 0
+        self.cycle_count = 0
+        self.write_log()
+        self.cycle_count = 0
 
     def run(self):
         pygame.init()
@@ -96,22 +104,28 @@ class CamsViewer:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_s:
                         self.stopping = False
+                        print('start reapproach')
                     if event.key == pygame.K_a:
                         self.stopping = True
+                        print('reapproach stopped')
 
             
             self.draw()
             pygame.display.flip()
             clock.tick(60)
 
-            if self.show_ROI and not self.stopping:
+            if self.show_ROI and not self.stopping and time.time() - self.t0 > self.timer:
                 self.calc_nr_white_px()
                 if len(self.white_px_count) > 1:
-                    if self.white_px_count[-1] > self.detection_factor * self.white_px_count[-1]:
+                    print(self.white_px_count[-2:])
+                    if self.white_px_count[-1] > self.detection_factor * self.white_px_count[-2] and self.white_px_count[-1] > 30:
                         user = input('Stop reapproach? y/n\n')
                         if user == 'y':
+                            self.cycle_count = 'end'
+                            self.write_log()
                             break
                 self.do_cut()
+                self.t0 = time.time()
 
         pygame.quit()
 
@@ -164,50 +178,7 @@ class CamsViewer:
         self.save_image_flag = f
 
     def do_cut(self):
-        print("Turn motor on...")
-        motor_on = self.mycon.cutting_motor_on()
-        motor_status = self.mycon.cutting_motor_status()
-        if motor_status[7:9] == b'01':
-            print("it's on")
-        elif motor_status[7:9] == b'00':
-            print("it's off")
-            raise Exception
-        elif motor_status[7:9] == b'E0':
-            print("invalid callabration")
-            raise Exception
-        else:
-            print("invalid response")
-            raise Exception
-
-        cut_finished = False
-        was_in_cutting_window = False
-        file_written = False
-        while not cut_finished:
-            current_state = self.mycon.get_handwheel_position()[7:9]
-            #           print(time.time())
-            # print(current_state)
-            if current_state == b"03":
-                was_in_cutting_window = True
-                t1 = time.time()
-            elif current_state == b"00" and was_in_cutting_window:
-                cut_finished = True
-                print("cut finished")
-                break
-
-        print("Turn motor off...")
-        motor_off = self.mycon.cutting_motor_off()
-        motor_status = self.mycon.cutting_motor_status()
-        if motor_status[7:9] == b'01':
-            print("it's on")
-            raise Exception
-        elif motor_status[7:9] == b'00':
-            print("it's off")
-        elif motor_status[7:9] == b'E0':
-            print("invalid callabration")
-            raise Exception
-        else:
-            print("invalid response")
-            raise Exception
+        self.write_log()
         
     def calc_nr_white_px(self):     
         img_gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
@@ -221,8 +192,20 @@ class CamsViewer:
 
         self.white_px_count.append(np.sum(img_gray[t:t+h, l:l+w]))
 
+    def write_log(self):
+        if self.cycle_count == 'end':
+            with open(self.log + self.cycle_count + '.txt', 'w') as f:
+                pass
+        else:
+            fn = str(self.cycle_count)
+            while len(fn) < 7:
+                fn = '0' + fn
+            with open(self.log + fn + '.txt', 'w') as f:
+                pass
+            self.cycle_count += 1
+
 
 if __name__ == '__main__':
-    viewer = CamsViewer()
+    viewer = Reapproach()
     viewer.run()
 

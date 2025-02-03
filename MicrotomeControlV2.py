@@ -30,6 +30,11 @@ def run_cutting():
     logs = 'logs\\' + sorted(os.listdir('logs'))[-1] + '\\'
     if not os.path.isdir(logs):
         raise ValueError('log folder does not exist')
+    reapproach_mode = False
+
+    if logs[-2] == 'r':
+        reapproach_mode = True
+        print(reapproach_mode)
 
     # Create an instance of the controller
     mycon = LeicaMicrotomeController()
@@ -88,9 +93,16 @@ def run_cutting():
 #           print(time.time())
             #print(current_state)
             if current_state == b"03":
+
                 was_in_cutting_window = True
                 t1 = time.time()
-            elif current_state == b"00" and was_in_cutting_window:
+
+            elif current_state == b"00" and was_in_cutting_window and not reapproach_mode:
+                cut_finished = True
+                print("cut finished")
+                break
+
+            elif current_state == b"02" and was_in_cutting_window and reapproach_mode:
                 cut_finished = True
                 print("cut finished")
                 break
