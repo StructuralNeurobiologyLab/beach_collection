@@ -96,12 +96,12 @@ def move_joystick(pidevice, joystick, pump, slice_count, log, abs_rot=0,
         elif joystick.get_button(6) == True:
             print('retract wafer')
             wpos = pidevice.qPOS()["4"]
-            pidevice.MOV(4, max(0, wpos - 10))
+            pidevice.MOV(4, max(0, wpos - 0.01))
 
         elif joystick.get_button(7) == True:
             print('retract wafer')
             wpos = pidevice.qPOS()["4"]
-            pidevice.MOV(4, max(0, wpos - 0.1))
+            pidevice.MOV(4, max(0, wpos - 0.001))
 
         elif joystick.get_button(8) == True:
             button_8 = True
@@ -150,7 +150,7 @@ def move_joystick(pidevice, joystick, pump, slice_count, log, abs_rot=0,
             end_collection = True
             break
 
-        elif button_8 and not joystick.get_button(8):
+        elif button_8 and not joystick.get_button(8) and slice_count != 'end':
             button_8 = False
             fn = str(slice_count)
             while len(fn) < 7:
@@ -159,7 +159,7 @@ def move_joystick(pidevice, joystick, pump, slice_count, log, abs_rot=0,
                 pass
             slice_count += 1
 
-        elif not new_attempt and not cut_done and dist > 5:
+        elif not new_attempt and not cut_done and dist > 5 and slice_count != 'end':
             cut_done = True
             fn = str(slice_count)
             while len(fn) < 7:

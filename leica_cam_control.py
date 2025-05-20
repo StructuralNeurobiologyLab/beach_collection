@@ -58,14 +58,18 @@ class CamsViewer:
         self.save_image_count = 0
         self.sub_image_count = 0
         self.sub_image_threshold = 2
-        self.subfolder = '/250117/'
+        self.subfolder = '/250217/'
+        self.record_collection = False
+
 
     def run(self):
         pygame.init()
         clock = pygame.time.Clock()
         running = True
         while running:
+            self.check_image_logs()
             self.get_image()
+            self.save_image_flag = False
             for event in pygame.event.get():
                 keys = pygame.key.get_pressed()
                 if event.type == pygame.QUIT:
@@ -97,7 +101,7 @@ class CamsViewer:
 
     def get_image(self):
         img = self.grab_image()
-        if self.save_image_flag:
+        if self.save_image_flag or self.record_collection:
             self.save_image(img)
         img = cv2.cvtColor(cv2.rotate(cv2.flip(cv2.resize(img, (self.screen_width, self.screen_height)), 0), cv2.ROTATE_90_CLOCKWISE), cv2.COLOR_BGR2RGB)
 
@@ -119,21 +123,37 @@ class CamsViewer:
 
     def save_image(self, img):
         #self.sub_image_count += 1
-
-        cv2.imwrite('images' + self.subfolder + 'image' + str(self.save_image_count) + '_' + str(self.sub_image_count) + '_' + str(time.time()) + '.png', img)
-
-        self.save_image_count += 1
-
-    def set_subfolder(self, f):
-        self.subfolder = f
         if not os.path.isdir('images' + self.subfolder):
             os.makedirs('images' + self.subfolder)
 
-    def set_subimage_threshold(self, t):
-        self.sub_image_threshold = t
+        cv2.imwrite('images' + self.subfolder + 'image' + str(self.save_image_count) + '.png', img)
 
-    def set_save_flag(self, f):
-        self.save_image_flag = f
+        self.save_image_count += 1
+
+    #def set_subfolder(self, f):
+    #    self.subfolder = f
+    #    if not os.path.isdir('images' + self.subfolder):
+    #        os.makedirs('images' + self.subfolder)
+
+    #def set_subimage_threshold(self, t):
+    #    self.sub_image_threshold = t
+
+    #def set_save_flag(self, f):
+    #    self.save_image_flag = f
+
+    def check_image_logs(self):
+
+        latest_dir = sorted(os.listdir('logs'))[-1]
+        if latest_dir + '_save_images.txt' in os.listdir('images/image_logs'):
+            if not latest_dir + '_ended.txt' in os.listdir('images/image_logs'):
+                if not self.record_collection:
+                    self.record_collection = True
+                    self.subfolder = '/' + latest_dir + '/leica_cam/'
+                    self.save_image_count = 0
+            else:
+                self.record_collection = False
+
+
 
 
 if __name__ == '__main__':

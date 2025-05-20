@@ -27,8 +27,8 @@ class SemiManualCollection:
 
     def __init__(self):
 
-        startup_t = int(time.time())
-        self.log = 'logs\\' + str(startup_t) + '\\'
+        self.startup_t = int(time.time())
+        self.log = 'logs\\' + str(self.startup_t) + '\\'
 
         os.makedirs(self.log)
         self.cycle_count = 0
@@ -36,13 +36,17 @@ class SemiManualCollection:
         self.cycle_count = 0
         self.AXES = ['1', '2', '3', '4']
 
-        self.internal_water_level_control = True
+        self.internal_water_level_control = False
         self.manual_water_refill = False
 
         self.auto_loop = False
         self.interrupt = True
 
         self.cutting_stopped = False
+
+        self.save_cam_images = True
+
+        self.flat_angle = True
 
         if self.internal_water_level_control:
             self.TCP_ADDRESS = '169.254.168.150'
@@ -86,7 +90,7 @@ class SemiManualCollection:
             self.stage_posS['dropoff_pos_z'] = 108
 
         self.main_menu()
-        
+
     def main_menu(self):
         print('\n\n######################\n\nMain Menu\n\n######################\n\n')
         print('1) Start collection with Robot\n')
@@ -127,11 +131,11 @@ class SemiManualCollection:
             time.sleep(10)
 
             #p = subprocess.Popen(['python', 'MicrotomeControlV2.py', self.log], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
+            self.write_cam_image_save_output()
 
             while True:
 
-                
+
                 #if self.cycle_count == 1:
                 #    pickup = False
                 #else:
@@ -158,6 +162,7 @@ class SemiManualCollection:
                     sleep(0.2)
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
+                    self.write_cam_image_save_end()
                     self.save_stage_pos()
                     print("Connection closed.")
                     break
@@ -186,10 +191,13 @@ class SemiManualCollection:
                     self.refilled = False
                 else:
                     sleep(abs((self.stage_posS['pickup_pos_xy'][0]-5) - self.stage_posS['dropoff_pos_xy'][0]) / 20 + 0.2)
+
+                if not self.flat_angle:
+                    # Lift tip slightly
+                    pidevice.MOV(3, self.stage_posS['pickup_pos_z']-0.1)
+                    time.sleep(0.1/20)
+
                 # Move section to wafer with joystick
-
-
-
                 _, _, _, end_collection, self.cycle_count = move_joystick(pidevice, self.joystick, self.pump, self.cycle_count, self.log, positions=self.stage_posS)
                 if end_collection and not self.cutting_stopped:
                     print('remove the wafer')
@@ -208,12 +216,14 @@ class SemiManualCollection:
                     sleep(0.2)
                     pygame.joystick.quit()
                     pidevice.CloseConnection()
+                    self.write_cam_image_save_end()
                     self.save_stage_pos()
                     print("Connection closed.")
                     break
                 # Lift tip and retract wafer holder
-                pidevice.MOV(4, pidevice.qPOS()["4"] - 0.4)
-                sleep(1.5)
+                if not self.flat_angle:
+                    pidevice.MOV(4, pidevice.qPOS()["4"] - 0.4)
+                    sleep(1.5)
                 pidevice.MOV(3, self.stage_posS['dropoff_pos_z'])
                 sleep(0.2)
                 # Move arm back to pickup point
@@ -285,6 +295,17 @@ class SemiManualCollection:
             with open(self.log + fn + '.txt', 'w') as f:
                 pass
             self.cycle_count += 1
+
+    def write_cam_image_save_output(self):
+        if self.save_cam_images:
+            with open('images/image_logs/' + str(self.startup_t) + '_save_images.txt', 'w') as f:
+                pass
+
+    def write_cam_image_save_end(self):
+        if self.save_cam_images:
+            with open('images/image_logs/' + str(self.startup_t) + '_ended.txt', 'w') as f:
+                pass
+
 
 if __name__ == '__main__':
     collect = SemiManualCollection()

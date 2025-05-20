@@ -33,7 +33,7 @@ class SemiManualCollection:
     def __init__(self):
         self.AXES = ['1', '2', '3', '4']
 
-        self.internal_water_level_control = True
+        self.internal_water_level_control = False
         self.manual_water_refill = False
 
         self.auto_loop = False

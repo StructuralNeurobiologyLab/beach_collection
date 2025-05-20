@@ -1,13 +1,15 @@
+import os
 import cv2
 from pypylon import pylon
 import pygame
 from screeninfo import get_monitors
+import time
 
 
 class CamsViewer:
 
     def __init__(self):
-        self.save_image = True
+
         # Camera
         self.image = None
         self.cam2 = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
@@ -52,12 +54,18 @@ class CamsViewer:
         # Wafer
         self.use_factor = 1 - 1/5.08    # define distance to the edge of the wafer
         self.reduced = False
+        self.record_collection = False
+
+        # Saving images
+        self.subfolder = ''
+        self.save_image_count = 0
 
     def run(self):
         pygame.init()
         clock = pygame.time.Clock()
         running = True
         while running:
+            self.check_image_logs()
             self.get_image()
             for event in pygame.event.get():
                 keys = pygame.key.get_pressed()
@@ -125,10 +133,8 @@ class CamsViewer:
             y_low = self.y - int(zoom * img.shape[1] * 0.5)
             y_high = self.y + int(zoom * img.shape[1] * 0.5)
 
-            if self.save_image:
-                self.save_image = False
-                img2 = cv2.cvtColor(cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE), cv2.COLOR_BGR2RGB)
-                cv2.imwrite('images/wafer_test.png', img2)
+            if self.record_collection:
+                self.save_image(img[x_low:x_high, y_low:y_high, :])
 
             img = cv2.flip(cv2.resize(img[x_low:x_high, y_low:y_high, :], (self.screen_width, self.screen_height)), 0)
 
@@ -218,6 +224,27 @@ class CamsViewer:
         self.ellipse_dimensions.center = center
         print(self.ellipse_dimensions.height, self.ellipse_dimensions.width)
         self.reduced = False
+
+    def check_image_logs(self):
+
+        latest_dir = sorted(os.listdir('logs'))[-1]
+        if latest_dir + '_save_images.txt' in os.listdir('images/image_logs'):
+            if not latest_dir + '_ended.txt' in os.listdir('images/image_logs'):
+                if not self.record_collection:
+                    self.record_collection = True
+                    self.subfolder = '/' + latest_dir + '/pylon_cam/'
+                    self.save_image_count = 0
+            else:
+                self.record_collection = False
+
+    def save_image(self, img):
+        # self.sub_image_count += 1
+        if not os.path.isdir('images' + self.subfolder):
+            os.makedirs('images' + self.subfolder)
+        img2 = cv2.cvtColor(cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE), cv2.COLOR_BGR2RGB)
+        cv2.imwrite('images' + self.subfolder + 'image' + str(self.save_image_count) + '.png', img2)
+
+        self.save_image_count += 1
 
 if __name__ == '__main__':
     viewer = CamsViewer()

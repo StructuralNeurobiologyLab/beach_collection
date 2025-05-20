@@ -48,17 +48,7 @@ def run_cutting():
             print("Turn motor off...")
             motor_off = mycon.cutting_motor_off()
             motor_status = mycon.cutting_motor_status()
-            if motor_status[7:9] == b'01':
-                print("it's on")
-                break
-            elif motor_status[7:9] == b'00':
-                print("it's off")
-            elif motor_status[7:9] == b'E0':
-                print("invalid callabration")
-                break
-            else:
-                print("invalid response")
-                break
+            print(motor_status)
 
         while stopping:
             if ending:
@@ -73,17 +63,7 @@ def run_cutting():
         print("Turn motor on...")
         motor_on = mycon.cutting_motor_on()
         motor_status = mycon.cutting_motor_status()
-        if motor_status[7:9] == b'01':
-            print("it's on")
-        elif motor_status[7:9] == b'00':
-            print("it's off")
-            break
-        elif motor_status[7:9] == b'E0':
-            print("invalid callabration")
-            break
-        else:
-            print("invalid response")
-            break
+        print(motor_status)
 
         cut_finished = False
         was_in_cutting_window = False
@@ -103,7 +83,9 @@ def run_cutting():
                 break
 
             elif current_state == b"02" and was_in_cutting_window and reapproach_mode:
+
                 cut_finished = True
+
                 print("cut finished")
                 break
 
