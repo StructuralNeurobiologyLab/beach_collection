@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import moviepy
 
-folder = '1747142563'
+folder = 'Z:\\Jonas Hemesath\\beach_collection_videos\\1751371037'
 
 
 def sort_images_naturally(fns):
@@ -24,9 +24,12 @@ def sort_images_naturally(fns):
         fns_sorted.append(y)
     return fns_sorted
 
-
-leica_path = 'images/' + folder + '/leica_cam/'
-pylon_path = 'images/' + folder + '/pylon_cam/'
+if not '\\' in folder:
+    leica_path = 'images/' + folder + '/leica_cam/'
+    pylon_path = 'images/' + folder + '/pylon_cam/'
+else:
+    leica_path = folder + '/leica_cam/'
+    pylon_path = folder + '/pylon_cam/'
 
 leica_fns = [img for img in os.listdir(leica_path) if img.endswith('png')]
 pylon_fns = [img for img in os.listdir(pylon_path) if img.endswith('png')]
@@ -67,13 +70,25 @@ fps_pylon = len(pylon_images) / duration_pylon
 #    video.write(frame_template)
 #image_files_pre = [img for img in os.listdir(merged_path) if img.endswith('png')]
 #image_files = [merged_path + img for img in sort_images_naturally(image_files_pre)]
-print('Generating leica movie')
-clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(leica_images, fps=fps_leica)
-clip.write_videofile('images/'+folder+'/video_leica.mp4')
+if not '\\' in folder:
+    print('Generating leica movie')
 
-print('Generating pylon movie')
-clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(pylon_images, fps=fps_pylon)
-clip.write_videofile('images/'+folder+'/video_pylon.mp4')
+    clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(leica_images, fps=fps_leica)
+    clip.write_videofile('images/'+folder+'/video_leica.mp4')
+
+    print('Generating pylon movie')
+    clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(pylon_images, fps=fps_pylon)
+    clip.write_videofile('images/'+folder+'/video_pylon.mp4')
+
+else:
+    print('Generating leica movie')
+
+    clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(leica_images, fps=fps_leica)
+    clip.write_videofile(folder + '/video_leica.mp4')
+
+    print('Generating pylon movie')
+    clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(pylon_images, fps=fps_pylon)
+    clip.write_videofile(folder + '/video_pylon.mp4')
 
 cv2.destroyAllWindows()
 
